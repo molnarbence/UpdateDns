@@ -19,7 +19,7 @@ jobs:
     - name: Pack
       run: dotnet pack ./src/ConsoleApp -p:PackageVersion=1.0.$GITHUB_RUN_NUMBER
     # login to nuget github package registry
-    - name: Publish
+    - name: Publish to GitHub Packages
       run: |
         dotnet nuget push "./src/ConsoleApp/packages/*.nupkg" \
           --api-key ${{ secrets.GITHUB_TOKEN }} \
