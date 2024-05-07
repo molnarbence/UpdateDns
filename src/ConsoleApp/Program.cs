@@ -34,7 +34,9 @@ class Program
       });
 
       wrapper.HostBuilder.UseSerilog((context, services, configuration) =>
-                  configuration.ReadFrom.Configuration(context.Configuration)
+                  configuration.WriteTo.Console()
+                  .MinimumLevel.Information()
+                  .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning)
             );
 
       return await wrapper.ExecuteAsync();
