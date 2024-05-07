@@ -20,6 +20,8 @@ jobs:
       run: dotnet pack ./src/ConsoleApp -p:PackageVersion=1.0.$GITHUB_RUN_NUMBER
     - name: Login to GitHub nuget
       run: dotnet nuget add source --username molnarbence --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/molnarbence/index.json" --configfile ./nuget.config
+    - name: List the content of the nuget.config file
+      run: cat ./nuget.config
     - name: Push to GitHub nuget
       run: dotnet nuget push ./src/ConsoleApp/packages/*.nupkg --source github
       
