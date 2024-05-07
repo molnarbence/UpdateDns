@@ -12,6 +12,7 @@
     <UserSecretsId>molnarbence_updatedns</UserSecretsId>
 
     <RepositoryUrl>https://github.com/molnarbence/UpdateDns</RepositoryUrl>
+    <PackageId>UpdateDns</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
