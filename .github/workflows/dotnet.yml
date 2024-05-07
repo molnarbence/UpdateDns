@@ -21,7 +21,7 @@ jobs:
     # login to nuget github package registry
     - name: Publish
       run: |
-        dotnet nuget push "*.nupkg" \
+        dotnet nuget push "./src/ConsoleApp/packages/*.nupkg" \
           --api-key ${{ secrets.GITHUB_TOKEN }} \
           --source https://nuget.pkg.github.com/${{ github.repository_owner }}
 
