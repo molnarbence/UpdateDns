@@ -22,5 +22,7 @@ jobs:
     - name: Pack
       run: dotnet pack ./src/ConsoleApp -p:PackageVersion=1.0.$GITHUB_RUN_NUMBER
     - name: Push to GitHub nuget
-      run: dotnet nuget push ./src/ConsoleApp/packages/*.nupkg --source "https://nuget.pkg.github.com/molnarbence/index.json" --api-key ${{ secrets.GITHUB_TOKEN }}
+      run: dotnet nuget push ./src/ConsoleApp/packages/*.nupkg --source "https://nuget.pkg.github.com/molnarbence/index.json" --api-key $GITHUB_TOKEN
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
