@@ -20,7 +20,7 @@ jobs:
       run: dotnet pack ./src/ConsoleApp -p:PackageVersion=1.0.$GITHUB_RUN_NUMBER
     # login to nuget github package registry
     - name: NuGet Authenticate
-      run: dotnet nuget add source https://nuget.pkg.github.com/molnarbence/index.json --name github --username molnarbence --password ${{ secrets.GITHUB_TOKEN }}
+      run: dotnet nuget add source https://nuget.pkg.github.com/molnarbence/index.json --name github --username molnarbence --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text
     # push the package to the github package registry
     - name: Push
       run: dotnet nuget push ./src/ConsoleApp/bin/Debug/UpdateDns.1.0.$GITHUB_RUN_NUMBER.nupkg --source github
