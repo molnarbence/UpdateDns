@@ -1,6 +1,3 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: .NET
 
 on:
@@ -21,8 +18,8 @@ jobs:
         dotnet-version: 8.0.x
     - name: Pack
       run: dotnet pack ./src/ConsoleApp -p:PackageVersion=1.0.$GITHUB_RUN_NUMBER
+    - name: Login to GitHub nuget
+      run: dotnet nuget add source --username molnarbence --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/molnarbence/index.json"
     - name: Push to GitHub nuget
-      run: dotnet nuget push ./src/ConsoleApp/packages/*.nupkg --source "https://nuget.pkg.github.com/molnarbence/index.json" --api-key $GITHUB_TOKEN
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: dotnet nuget push ./src/ConsoleApp/packages/*.nupkg --source github
       
