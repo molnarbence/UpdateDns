@@ -9,7 +9,9 @@
 	<PackAsTool>true</PackAsTool>
     <ToolCommandName>update-dns</ToolCommandName>
     <PackageOutputPath>./packages</PackageOutputPath>
-    <UserSecretsId>molnarbence_updatedns</UserSecretsId>	
+    <UserSecretsId>molnarbence_updatedns</UserSecretsId>
+
+    <RepositoryUrl>https://github.com/molnarbence/UpdateDns</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
