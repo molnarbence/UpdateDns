@@ -54,10 +54,8 @@ public class DnsRecord
    public string Notes { get; set; } = string.Empty;
 }
 
-public class UpdateDnsRecordRequest
+public class UpdateDnsRecordRequest : PorkbunRequestBase
 {
-   public required string SecretApiKey { get; set; }
-   public required string ApiKey { get; set; }
    public required string Content { get; set; }
    public required string Ttl { get; set; }
 }

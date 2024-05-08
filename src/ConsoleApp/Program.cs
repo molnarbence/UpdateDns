@@ -76,6 +76,6 @@ class Program
       // Call the domain registrar
       logger.LogInformation("Updating address...");
       await domainRegistrar.UpdateAddressAsync(Domain, Name, publicIpAddress);
-      logger.LogInformation("Alias updated.");
+      logger.LogInformation("Address updated.");
    }
 }

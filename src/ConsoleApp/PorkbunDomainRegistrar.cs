@@ -25,8 +25,8 @@ public partial class PorkbunDomainRegistrar : IDomainRegistrar
    {
       var updateDnsRecordRequest = new UpdateDnsRecordRequest
       {
-         ApiKey = _options.Value.ApiKey,
-         SecretApiKey = _options.Value.SecretKey,
+         Apikey = _options.Value.ApiKey,
+         Secretapikey = _options.Value.SecretKey,
          Content = address,
          Ttl = "600"
       };
