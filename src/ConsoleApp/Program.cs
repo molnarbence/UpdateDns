@@ -54,28 +54,38 @@ class Program
    [Argument(1, "name", "The name of the record to update.")]
    public string Name { get; set; } = string.Empty;
 
-   public async Task OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, IDomainRegistrar domainRegistrar)
+   public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, IDomainRegistrar domainRegistrar)
    {
-      // Get the public IP address
-      logger.LogInformation("Getting public IP address...");
-      var publicIpAddress = await publicIpAddressResolver.GetPublicIpAddressAsync();
-      logger.LogInformation("Public IP address is '{IpAddress}'", publicIpAddress);
-
-      // Get the current alias
-      logger.LogInformation("Getting current address of the DNS record...");
-      var currentDomainIpAddress = await domainRegistrar.GetCurrentAddressAsync(Domain, Name);
-      logger.LogInformation("Current address is '{IpAddress}'", currentDomainIpAddress);
-
-      // If the alias is already set to the IP address, then we're done
-      if (currentDomainIpAddress == publicIpAddress)
+      try
       {
-         logger.LogInformation("Address is already set to the current IP address");
-         return;
-      }
+         // Get the public IP address
+         logger.LogInformation("Getting public IP address...");
+         var publicIpAddress = await publicIpAddressResolver.GetPublicIpAddressAsync();
+         logger.LogInformation("Public IP address is '{IpAddress}'", publicIpAddress);
 
-      // Call the domain registrar
-      logger.LogInformation("Updating address...");
-      await domainRegistrar.UpdateAddressAsync(Domain, Name, publicIpAddress);
-      logger.LogInformation("Address updated.");
+         // Get the current alias
+         logger.LogInformation("Getting current address of the DNS record...");
+         var currentDomainIpAddress = await domainRegistrar.GetCurrentAddressAsync(Domain, Name);
+         logger.LogInformation("Current address is '{IpAddress}'", currentDomainIpAddress);
+
+         // If the alias is already set to the IP address, then we're done
+         if (currentDomainIpAddress == publicIpAddress)
+         {
+            logger.LogInformation("Address is already set to the current IP address");
+            return 0;
+         }
+
+         // Call the domain registrar
+         logger.LogInformation("Updating address...");
+         await domainRegistrar.UpdateAddressAsync(Domain, Name, publicIpAddress);
+         logger.LogInformation("Address updated.");
+         return 0;
+      }
+      catch (Exception ex)
+      {
+         logger.LogError(ex, "An error occurred");
+         return -1;
+      }
+      
    }
 }
