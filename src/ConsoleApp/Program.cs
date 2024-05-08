@@ -1,7 +1,10 @@
 ﻿using MbUtils.Extensions.CommandLineUtils;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Extensions.Http;
 using Refit;
 using Serilog;
 
@@ -20,9 +23,12 @@ class Program
             .AddRefitClient<IPublicIpAddressResolver>()
             .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://api.ipify.org"));
 
+         var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
+
          services
             .AddRefitClient<IPorkbunApi>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://api-ipv4.porkbun.com/api/json/v3"));
+            .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://api-ipv4.porkbun.com/api/json/v3"))
+            .AddPolicyHandler(retryPolicy);
 
          services.AddSingleton<IDomainRegistrar, PorkbunDomainRegistrar>();
 
@@ -34,7 +40,7 @@ class Program
       });
 
       wrapper.HostBuilder.UseSerilog((context, services, configuration) =>
-                  configuration.WriteTo.Console()
+                  configuration.WriteTo.Console().WriteTo.File(context.Configuration.GetValue<string>("Serilog:LogFilePath") ?? "log.txt", rollingInterval: RollingInterval.Day)
                   .MinimumLevel.Information()
                   .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning)
             );
