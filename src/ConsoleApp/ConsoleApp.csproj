@@ -16,7 +16,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoCtor" Version="2.3.0" />
     <PackageReference Include="MbUtils.Extensions.CommandLineUtils" Version="8.0.5" />
     <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="8.0.4" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.0" />

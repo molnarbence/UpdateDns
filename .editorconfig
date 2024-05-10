@@ -130,6 +130,8 @@ csharp_space_between_method_call_empty_parameter_list_parentheses = false
 # Wrapping preferences 
 csharp_preserve_single_line_statements = true 
 csharp_preserve_single_line_blocks = true 
+# Namespace preferences
+csharp_style_namespace_declarations = file_scoped:warning
 
 # Instance fields are camelCase and start with _
 dotnet_naming_rule.instance_fields_should_be_camel_case.severity = suggestion

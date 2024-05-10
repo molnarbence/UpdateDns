@@ -1,8 +1,11 @@
-﻿using MbUtils.Extensions.CommandLineUtils;
+﻿using ConsoleApp.Cloudflare;
+using ConsoleApp.Cloudflare.DnsRecords;
+using MbUtils.Extensions.CommandLineUtils;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
 using Refit;
@@ -26,15 +29,15 @@ class Program
          var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
 
          services
-            .AddRefitClient<IPorkbunApi>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://api-ipv4.porkbun.com/api/json/v3"))
+            .AddTransient<CloudflareAuthDelegatingHandler>()
+            .AddRefitClient<ICloudflareApi>()
+            .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://api.cloudflare.com/client/v4"))
+            .AddHttpMessageHandler<CloudflareAuthDelegatingHandler>()
             .AddPolicyHandler(retryPolicy);
 
-         services.AddSingleton<IDomainRegistrar, PorkbunDomainRegistrar>();
-
          services
-            .AddOptions<PorkbunApiConfiguration>()
-            .Bind(hostBuilderContext.Configuration.GetSection(PorkbunApiConfiguration.SectionName))
+            .AddOptions<CloudflareConfiguration>()
+            .Bind(hostBuilderContext.Configuration.GetSection(CloudflareConfiguration.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
       });
@@ -54,7 +57,7 @@ class Program
    [Argument(1, "name", "The name of the record to update.")]
    public string Name { get; set; } = string.Empty;
 
-   public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, IDomainRegistrar domainRegistrar)
+   public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, ICloudflareApi cloudflareApi, IOptions<CloudflareConfiguration> options)
    {
       try
       {
@@ -65,7 +68,8 @@ class Program
 
          // Get the current alias
          logger.LogInformation("Getting current address of the DNS record...");
-         var currentDomainIpAddress = await domainRegistrar.GetCurrentAddressAsync(Domain, Name);
+         var getDnsRecordResponse = await cloudflareApi.GetDnsRecordAsync(options.Value.ZoneId, options.Value.RecordId);
+         var currentDomainIpAddress = getDnsRecordResponse.Result.Content;
          logger.LogInformation("Current address is '{IpAddress}'", currentDomainIpAddress);
 
          // If the alias is already set to the IP address, then we're done
@@ -77,7 +81,12 @@ class Program
 
          // Call the domain registrar
          logger.LogInformation("Updating address...");
-         await domainRegistrar.UpdateAddressAsync(Domain, Name, publicIpAddress);
+         await cloudflareApi.UpdateDnsRecordAsync(options.Value.ZoneId, options.Value.RecordId, new DnsRecordInfo
+         {
+            Name = Name,
+            Content = publicIpAddress,
+            Type = "A"
+         });
          logger.LogInformation("Address updated.");
          return 0;
       }
