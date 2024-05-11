@@ -1,11 +1,10 @@
 ﻿using ConsoleApp.Cloudflare;
-using ConsoleApp.Cloudflare.DnsRecords;
 using MbUtils.Extensions.CommandLineUtils;
 using McMaster.Extensions.CommandLineUtils;
+using Microsft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
 using Refit;
@@ -29,17 +28,10 @@ class Program
          var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
 
          services
-            .AddTransient<CloudflareAuthDelegatingHandler>()
-            .AddRefitClient<ICloudflareApi>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://api.cloudflare.com/client/v4"))
-            .AddHttpMessageHandler<CloudflareAuthDelegatingHandler>()
-            .AddPolicyHandler(retryPolicy);
-
-         services
-            .AddOptions<CloudflareConfiguration>()
-            .Bind(hostBuilderContext.Configuration.GetSection(CloudflareConfiguration.SectionName))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .AddCloudflareApi(hostBuilderContext.Configuration)
+            .AddSingleton<IDnsRecordsService, CloudflareDnsRecordsService>()
+            .AddSingleton<IIdMappings, CloudflareApiIdMappings>();
+         
       });
 
       wrapper.HostBuilder.UseSerilog((context, services, configuration) =>
@@ -57,7 +49,7 @@ class Program
    [Argument(1, "name", "The name of the record to update.")]
    public string Name { get; set; } = string.Empty;
 
-   public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, ICloudflareApi cloudflareApi, IOptions<CloudflareConfiguration> options)
+   public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, IDnsRecordsService dnsRecordsService)
    {
       try
       {
@@ -66,10 +58,9 @@ class Program
          var publicIpAddress = await publicIpAddressResolver.GetPublicIpAddressAsync();
          logger.LogInformation("Public IP address is '{IpAddress}'", publicIpAddress);
 
-         // Get the current alias
+         // Get the current address of the DNS record
          logger.LogInformation("Getting current address of the DNS record...");
-         var getDnsRecordResponse = await cloudflareApi.GetDnsRecordAsync(options.Value.ZoneId, options.Value.RecordId);
-         var currentDomainIpAddress = getDnsRecordResponse.Result.Content;
+         var currentDomainIpAddress = await dnsRecordsService.GetCurrentAddressAsync(Domain, Name);
          logger.LogInformation("Current address is '{IpAddress}'", currentDomainIpAddress);
 
          // If the alias is already set to the IP address, then we're done
@@ -81,12 +72,7 @@ class Program
 
          // Call the domain registrar
          logger.LogInformation("Updating address...");
-         await cloudflareApi.UpdateDnsRecordAsync(options.Value.ZoneId, options.Value.RecordId, new DnsRecordInfo
-         {
-            Name = Name,
-            Content = publicIpAddress,
-            Type = "A"
-         });
+         await dnsRecordsService.UpdateRecordAsync(Domain, Name, publicIpAddress);
          logger.LogInformation("Address updated.");
          return 0;
       }

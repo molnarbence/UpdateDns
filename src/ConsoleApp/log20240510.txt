@@ -1,8 +1,0 @@
-2024-05-10 19:36:20.302 +02:00 [INF] Getting public IP address...
-2024-05-10 19:36:20.919 +02:00 [INF] Public IP address is '86.59.202.24'
-2024-05-10 19:36:20.946 +02:00 [INF] Getting current address of the DNS record...
-2024-05-10 19:36:21.126 +02:00 [ERR] An error occurred
-Refit.ApiException: Response status code does not indicate success: 400 (Bad Request).
-   at Refit.RequestBuilderImplementation.<>c__DisplayClass14_0`2.<<BuildCancellableTaskFuncForMethod>b__0>d.MoveNext() in /_/Refit/RequestBuilderImplementation.cs:line 288
---- End of stack trace from previous location ---
-   at ConsoleApp.Program.OnExecuteAsync(ILogger`1 logger, IPublicIpAddressResolver publicIpAddressResolver, ICloudflareApi cloudflareApi, IOptions`1 options) in D:\UpdateDns\src\ConsoleApp\Program.cs:line 69
