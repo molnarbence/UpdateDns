@@ -30,7 +30,8 @@ class Program
          services
             .AddCloudflareApi(hostBuilderContext.Configuration)
             .AddSingleton<IDnsRecordsService, CloudflareDnsRecordsService>()
-            .AddSingleton<IIdMappings, CloudflareApiIdMappings>();
+            .AddKeyedSingleton<IIdMappings, FileCachedIdMappings>("cache")
+            .AddKeyedSingleton<IIdMappings, CloudflareApiIdMappings>("api");
          
       });
 
