@@ -28,7 +28,7 @@ class Program
          var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
 
          services
-            .AddCloudflareApi(hostBuilderContext.Configuration)
+            .AddCloudflareApi(hostBuilderContext.Configuration, httpClientBuilder => httpClientBuilder.AddPolicyHandler(retryPolicy))
             .AddSingleton<IDnsRecordsService, CloudflareDnsRecordsService>()
             .AddKeyedSingleton<IIdMappings, FileCachedIdMappings>("cache")
             .AddKeyedSingleton<IIdMappings, CloudflareApiIdMappings>("api");
