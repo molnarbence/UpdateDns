@@ -36,7 +36,28 @@ class Program
       });
 
       wrapper.HostBuilder.UseSerilog((context, services, configuration) =>
-                  configuration.WriteTo.Console().WriteTo.File(context.Configuration.GetValue<string>("Serilog:LogFilePath") ?? "log.txt", rollingInterval: RollingInterval.Day)
+                  configuration
+                     .WriteTo.Console()
+                     .WriteTo.File(context.Configuration.GetValue<string>("Serilog:LogFilePath") ?? "log.txt", rollingInterval: RollingInterval.Day)
+                     .WriteTo.OpenTelemetry(
+                        options =>
+                        {
+                           var otelEndpoint = context.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? string.Empty;
+                           options.Endpoint = otelEndpoint;
+                           var headers = context.Configuration["OTEL_EXPORTER_OTLP_HEADERS"]?.Split(',') ?? [];
+                           foreach (var header in headers)
+                           {
+                              var (key, value) = header.Split('=') switch
+                              {
+                              [string k, string v] => (k, v),
+                                 var v => throw new Exception($"Invalid header format {v}")
+                              };
+
+                              options.Headers.Add(key, value);
+                           }
+                           options.ResourceAttributes.Add("service.name", "update-dns");
+                        }
+                     )
                   .MinimumLevel.Information()
                   .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning)
             );
