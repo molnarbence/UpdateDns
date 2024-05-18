@@ -38,7 +38,7 @@ class Program
       wrapper.HostBuilder.UseSerilog((context, services, configuration) =>
                   configuration
                      .WriteTo.Console()
-                     .WriteTo.File(context.Configuration.GetValue<string>("Serilog:LogFilePath") ?? "log.txt", rollingInterval: RollingInterval.Day)
+                     // .WriteTo.File(context.Configuration.GetValue<string>("Serilog:LogFilePath") ?? "log.txt", rollingInterval: RollingInterval.Day)
                      .WriteTo.OpenTelemetry(
                         options =>
                         {
