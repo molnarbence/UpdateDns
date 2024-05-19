@@ -6,8 +6,8 @@ namespace ConsoleApp;
 internal class FileCachedIdMappings([FromKeyedServices("api")] IIdMappings component, IConfiguration configuration) : IIdMappings, IDisposable
 {
    private readonly IIdMappings _component = component;
-   private readonly IConfiguration _configuration = configuration;
    private IDictionary<string, FileCacheZoneEntry>? _cache;
+   private string? _cacheFilePath;
 
    public async ValueTask<string?> GetZoneId(string zoneName)
    {
@@ -54,7 +54,15 @@ internal class FileCachedIdMappings([FromKeyedServices("api")] IIdMappings compo
       }
    }
 
-   private string GetCacheFilePath() => _configuration["CacheFilePath"] ?? "idMappings.json";
+   private string GetCacheFilePath()
+   {
+      if (_cacheFilePath is not null) return _cacheFilePath;
+      var homeFolder = Environment.GetEnvironmentVariable("HOME") 
+         ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+      var appDataFolder = Path.Combine(homeFolder, ".update-dns");
+      if (!Directory.Exists(appDataFolder)) Directory.CreateDirectory(appDataFolder);
+      return _cacheFilePath = Path.Combine(appDataFolder, "idMappings.json");
+   }
 
    private IDictionary<string, FileCacheZoneEntry> GetCache()
    {

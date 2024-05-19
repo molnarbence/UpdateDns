@@ -21,9 +21,11 @@ class Program
 
       wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
       {
+         AppConfiguration appConfig = hostBuilderContext.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
+
          services
             .AddRefitClient<IPublicIpAddressResolver>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://api.ipify.org"));
+            .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.PublicIpAddressResolverBaseUrl));
 
          var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
 
@@ -42,9 +44,9 @@ class Program
                      .WriteTo.OpenTelemetry(
                         options =>
                         {
-                           var otelEndpoint = context.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? string.Empty;
-                           options.Endpoint = otelEndpoint;
-                           var headers = context.Configuration["OTEL_EXPORTER_OTLP_HEADERS"]?.Split(',') ?? [];
+                           AppConfiguration appConfig = context.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
+                           options.Endpoint = appConfig.OTEL_EXPORTER_OTLP_ENDPOINT;
+                           var headers = appConfig.OTEL_EXPORTER_OTLP_HEADERS.Split(',') ?? [];
                            foreach (var header in headers)
                            {
                               var (key, value) = header.Split('=') switch
