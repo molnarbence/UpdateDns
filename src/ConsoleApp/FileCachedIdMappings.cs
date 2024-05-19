@@ -1,9 +1,8 @@
 ﻿using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ConsoleApp;
-internal class FileCachedIdMappings([FromKeyedServices("api")] IIdMappings component, IConfiguration configuration) : IIdMappings, IDisposable
+internal class FileCachedIdMappings([FromKeyedServices("api")] IIdMappings component) : IIdMappings, IDisposable
 {
    private readonly IIdMappings _component = component;
    private IDictionary<string, FileCacheZoneEntry>? _cache;
