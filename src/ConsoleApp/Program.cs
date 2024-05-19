@@ -19,6 +19,16 @@ class Program
    {
       var wrapper = new CommandLineApplicationWrapper<Program>(args);
 
+      var appDataFolder = GetAppDataFolder();
+      if (!Directory.Exists(appDataFolder)) Directory.CreateDirectory(appDataFolder);
+
+      wrapper.HostBuilder.ConfigureAppConfiguration((context, builder) => {
+         builder.AddJsonFile(Path.Combine(appDataFolder, "config.json"), optional: true);
+         builder.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("AppDataFolder", appDataFolder),
+            ]);
+      });
+
       wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
       {
          AppConfiguration appConfig = hostBuilderContext.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
@@ -34,37 +44,22 @@ class Program
             .AddSingleton<IDnsRecordsService, CloudflareDnsRecordsService>()
             .AddKeyedSingleton<IIdMappings, FileCachedIdMappings>("cache")
             .AddKeyedSingleton<IIdMappings, CloudflareApiIdMappings>("api");
+
+         services.AddOptions<AppConfiguration>()
+            .Bind(hostBuilderContext.Configuration);
          
       });
 
-      wrapper.HostBuilder.UseSerilog((context, services, configuration) =>
-                  configuration
-                     .WriteTo.Console()
-                     // .WriteTo.File(context.Configuration.GetValue<string>("Serilog:LogFilePath") ?? "log.txt", rollingInterval: RollingInterval.Day)
-                     .WriteTo.OpenTelemetry(
-                        options =>
-                        {
-                           AppConfiguration appConfig = context.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
-                           options.Endpoint = appConfig.OTEL_EXPORTER_OTLP_ENDPOINT;
-                           var headers = appConfig.OTEL_EXPORTER_OTLP_HEADERS.Split(',') ?? [];
-                           foreach (var header in headers)
-                           {
-                              var (key, value) = header.Split('=') switch
-                              {
-                              [string k, string v] => (k, v),
-                                 var v => throw new Exception($"Invalid header format {v}")
-                              };
-
-                              options.Headers.Add(key, value);
-                           }
-                           options.ResourceAttributes.Add("service.name", "update-dns");
-                        }
-                     )
-                  .MinimumLevel.Information()
-                  .MinimumLevel.Override("System.Net.Http.HttpClient", Serilog.Events.LogEventLevel.Warning)
-            );
+      wrapper.HostBuilder.UseSerilogWithOpenTelemetry();
 
       return await wrapper.ExecuteAsync();
+   }
+
+   private static string GetAppDataFolder()
+   {
+      var homeFolder = Environment.GetEnvironmentVariable("HOME")
+         ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+      return Path.Combine(homeFolder, ".update-dns");
    }
 
    [Argument(0, "domain", "The domain to update.")]

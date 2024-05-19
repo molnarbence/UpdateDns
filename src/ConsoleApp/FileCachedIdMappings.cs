@@ -1,10 +1,14 @@
 ﻿using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ConsoleApp;
-internal class FileCachedIdMappings([FromKeyedServices("api")] IIdMappings component) : IIdMappings, IDisposable
+internal class FileCachedIdMappings(
+   [FromKeyedServices("api")] IIdMappings component, 
+   IOptions<AppConfiguration> configuration) : IIdMappings, IDisposable
 {
    private readonly IIdMappings _component = component;
+   private readonly IOptions<AppConfiguration> _configuration = configuration;
    private IDictionary<string, FileCacheZoneEntry>? _cache;
    private string? _cacheFilePath;
 
@@ -56,10 +60,7 @@ internal class FileCachedIdMappings([FromKeyedServices("api")] IIdMappings compo
    private string GetCacheFilePath()
    {
       if (_cacheFilePath is not null) return _cacheFilePath;
-      var homeFolder = Environment.GetEnvironmentVariable("HOME") 
-         ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-      var appDataFolder = Path.Combine(homeFolder, ".update-dns");
-      if (!Directory.Exists(appDataFolder)) Directory.CreateDirectory(appDataFolder);
+      var appDataFolder = _configuration.Value.AppDataFolder;
       return _cacheFilePath = Path.Combine(appDataFolder, "idMappings.json");
    }
 
