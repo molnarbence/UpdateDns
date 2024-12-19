@@ -7,8 +7,6 @@ internal class FileCachedIdMappings(
    [FromKeyedServices("api")] IIdMappings component, 
    IOptions<AppConfiguration> configuration) : IIdMappings, IDisposable
 {
-   private readonly IIdMappings _component = component;
-   private readonly IOptions<AppConfiguration> _configuration = configuration;
    private IDictionary<string, FileCacheZoneEntry>? _cache;
    private string? _cacheFilePath;
 
@@ -19,7 +17,7 @@ internal class FileCachedIdMappings(
       if (cache.TryGetValue(zoneName, out var zoneCache)) return zoneCache.Id;
 
       // If not found, get it from the component and cache it
-      var zoneId = await _component.GetZoneId(zoneName);
+      var zoneId = await component.GetZoneId(zoneName);
       if (zoneId is not null) cache[zoneName] = new FileCacheZoneEntry { Id = zoneId };
       return zoneId;
    }
@@ -31,20 +29,22 @@ internal class FileCachedIdMappings(
       if (cache.TryGetValue(zoneName, out var zoneEntry) && zoneEntry.DnsRecords.TryGetValue(recordName, out var recordId)) return recordId;
 
       // If not found, get it from the component and cache it
-      recordId = await _component.GetDnsRecordId(zoneName, recordName);
-      if (recordId is not null)
+      recordId = await component.GetDnsRecordId(zoneName, recordName);
+      if (recordId is null)
       {
-         if (!cache.TryGetValue(zoneName, out zoneEntry))
-         {
-            var zoneId = await _component.GetZoneId(zoneName);
-            if (zoneId is null) return null;
-
-            zoneEntry = new FileCacheZoneEntry { Id = zoneId };
-            cache[zoneName] = zoneEntry;
-         }
-
-         zoneEntry.DnsRecords[recordName] = recordId;
+         return recordId;
       }
+
+      if (!cache.TryGetValue(zoneName, out zoneEntry))
+      {
+         var zoneId = await component.GetZoneId(zoneName);
+         if (zoneId is null) return null;
+
+         zoneEntry = new FileCacheZoneEntry { Id = zoneId };
+         cache[zoneName] = zoneEntry;
+      }
+
+      zoneEntry.DnsRecords[recordName] = recordId;
       return recordId;
    }
 
@@ -60,7 +60,7 @@ internal class FileCachedIdMappings(
    private string GetCacheFilePath()
    {
       if (_cacheFilePath is not null) return _cacheFilePath;
-      var appDataFolder = _configuration.Value.AppDataFolder;
+      var appDataFolder = configuration.Value.AppDataFolder;
       return _cacheFilePath = Path.Combine(appDataFolder, "idMappings.json");
    }
 
