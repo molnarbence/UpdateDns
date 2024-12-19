@@ -31,11 +31,15 @@ class Program
 
       wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
       {
-         AppConfiguration appConfig = hostBuilderContext.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
+         AppConfiguration appConfig =
+            hostBuilderContext.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
 
          services
             .AddRefitClient<IPublicIpAddressResolver>()
             .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.PublicIpAddressResolverBaseUrl));
+         
+         services.AddRefitClient<ISlackNotifications>()
+            .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.Slack.WebhookUrl));
 
          var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
 
@@ -68,7 +72,7 @@ class Program
    [Argument(1, "name", "The name of the record to update.")]
    public string Name { get; set; } = string.Empty;
 
-   public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, IDnsRecordsService dnsRecordsService)
+   public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, IDnsRecordsService dnsRecordsService, ISlackNotifications slackNotifications)
    {
       try
       {
@@ -79,11 +83,11 @@ class Program
 
          // Get the current address of the DNS record
          logger.LogInformation("Getting current address of the DNS record...");
-         var currentDomainIpAddress = await dnsRecordsService.GetCurrentAddressAsync(Domain, Name);
-         logger.LogInformation("Current address is '{IpAddress}'", currentDomainIpAddress);
+         var addressInDnsRecord = await dnsRecordsService.GetCurrentAddressAsync(Domain, Name);
+         logger.LogInformation("Current address is '{IpAddress}'", addressInDnsRecord);
 
          // If the alias is already set to the IP address, then we're done
-         if (currentDomainIpAddress == publicIpAddress)
+         if (addressInDnsRecord == publicIpAddress)
          {
             logger.LogInformation("Address is already set to the current IP address");
             return 0;
@@ -93,6 +97,10 @@ class Program
          logger.LogInformation("Updating address...");
          await dnsRecordsService.UpdateRecordAsync(Domain, Name, publicIpAddress);
          logger.LogInformation("Address updated.");
+         
+         // Send a notification
+         await slackNotifications.SendNotificationAsync(new SlackMessage(){ Text = $"DNS record for {Name}.{Domain} updated from {addressInDnsRecord} to {publicIpAddress}" });   
+         
          return 0;
       }
       catch (Exception ex)
@@ -100,6 +108,5 @@ class Program
          logger.LogError(ex, "An error occurred");
          return -1;
       }
-      
    }
 }
