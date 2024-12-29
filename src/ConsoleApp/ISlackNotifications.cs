@@ -8,7 +8,4 @@ internal interface ISlackNotifications
    Task SendNotificationAsync([Body] SlackMessage message);
 }
 
-internal class SlackMessage
-{
-   public string Text { get; set; } = string.Empty;
-}
+internal record SlackMessage(string Text);

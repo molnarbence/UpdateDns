@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Extensions.Http;
 using Refit;
-using Serilog;
 
 namespace ConsoleApp;
 
@@ -67,10 +66,10 @@ class Program
    }
 
    [Argument(0, "domain", "The domain to update.")]
-   public string Domain { get; set; } = string.Empty;
+   private string Domain { get; } = string.Empty;
 
    [Argument(1, "name", "The name of the record to update.")]
-   public string Name { get; set; } = string.Empty;
+   private string Name { get; } = string.Empty;
 
    public async Task<int> OnExecuteAsync(ILogger<Program> logger, IPublicIpAddressResolver publicIpAddressResolver, IDnsRecordsService dnsRecordsService, ISlackNotifications slackNotifications)
    {
@@ -99,7 +98,7 @@ class Program
          logger.LogInformation("Address updated.");
          
          // Send a notification
-         await slackNotifications.SendNotificationAsync(new SlackMessage(){ Text = $"DNS record for {Name}.{Domain} updated from {addressInDnsRecord} to {publicIpAddress}" });   
+         await slackNotifications.SendNotificationAsync(new SlackMessage($"DNS record for {Name}.{Domain} updated from {addressInDnsRecord} to {publicIpAddress}"));   
          
          return 0;
       }
