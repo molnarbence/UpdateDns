@@ -3,6 +3,8 @@ using CloudflareApi.Client.DnsRecords;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ConsoleApp.Cloudflare;
+
+[RegisterSingleton]
 internal class CloudflareDnsRecordsService(IZonesApi zonesApi, [FromKeyedServices("cache")] IIdMappings idMappings) : IDnsRecordsService
 {
    public async Task<string?> GetCurrentAddressAsync(string zoneName, string recordName)

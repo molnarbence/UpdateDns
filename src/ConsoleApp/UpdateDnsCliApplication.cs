@@ -1,4 +1,5 @@
-﻿using McMaster.Extensions.CommandLineUtils;
+﻿using System.Diagnostics.Metrics;
+using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Logging;
 
 namespace ConsoleApp;
@@ -14,6 +15,7 @@ internal class UpdateDnsCliApplication
 
    public async Task<int> OnExecuteAsync(
       ILogger<UpdateDnsCliApplication> logger,
+      UpdateDnsMetrics metrics,
       IPublicIpAddressResolver publicIpAddressResolver, 
       IDnsRecordsService dnsRecordsService, 
       ISlackNotifications slackNotifications)
@@ -34,6 +36,7 @@ internal class UpdateDnsCliApplication
          if (addressInDnsRecord == publicIpAddress)
          {
             logger.LogInformation("Address is already set to the current IP address");
+            metrics.DnsRemainsUnchanged();
             return 0;
          }
 
@@ -41,6 +44,7 @@ internal class UpdateDnsCliApplication
          logger.LogInformation("Updating address...");
          await dnsRecordsService.UpdateRecordAsync(Domain, Name, publicIpAddress);
          logger.LogInformation("Address updated.");
+         metrics.DnsUpdated();
          
          // Send a notification
          await slackNotifications.SendNotificationAsync(new SlackMessage($"DNS record for {Name}.{Domain} updated from {addressInDnsRecord} to {publicIpAddress}"));   
@@ -50,6 +54,7 @@ internal class UpdateDnsCliApplication
       catch (Exception ex)
       {
          logger.LogError(ex, "An error occurred");
+         metrics.DnsUpdateFailed();
          return -1;
       }
    }

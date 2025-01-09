@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace ConsoleApp;
+
+[RegisterKeyedSingleton("cache")]
 internal class FileCachedIdMappings(
    [FromKeyedServices("api")] IIdMappings component, 
    IOptions<AppConfiguration> configuration) : IIdMappings, IDisposable

@@ -39,9 +39,7 @@ wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
 
    services
       .AddCloudflareApi(hostBuilderContext.Configuration, httpClientBuilder => httpClientBuilder.AddPolicyHandler(retryPolicy))
-      .AddSingleton<IDnsRecordsService, CloudflareDnsRecordsService>()
-      .AddKeyedSingleton<IIdMappings, FileCachedIdMappings>("cache")
-      .AddKeyedSingleton<IIdMappings, CloudflareApiIdMappings>("api");
+      .AutoRegisterFromConsoleApp();
 
    services.AddOptions<AppConfiguration>()
       .Bind(hostBuilderContext.Configuration);
@@ -49,7 +47,9 @@ wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
    services.AddOpenTelemetry()
       .ConfigureResource(builder => builder.AddService("UpdateDns"))
       .WithTracing(builder => builder.AddHttpClientInstrumentation().AddOtlpExporter())
-      .WithMetrics(builder => builder.AddOtlpExporter()
+      .WithMetrics(builder => builder
+         .AddMeter("UpdateDns")
+         .AddOtlpExporter()
          .AddHttpClientInstrumentation());
 
 });

@@ -1,6 +1,8 @@
 ﻿using CloudflareApi.Client;
 
 namespace ConsoleApp.Cloudflare;
+
+[RegisterKeyedSingleton("api")]
 internal class CloudflareApiIdMappings(IZonesApi zonesApi) : IIdMappings
 {
    public async ValueTask<string?> GetZoneId(string zoneName)
