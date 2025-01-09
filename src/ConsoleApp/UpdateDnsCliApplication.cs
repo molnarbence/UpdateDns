@@ -20,6 +20,8 @@ internal class UpdateDnsCliApplication
       IDnsRecordsService dnsRecordsService, 
       ISlackNotifications slackNotifications)
    {
+      ActivitySource activitySource = new("UpdateDns");
+      using var activity = activitySource.StartActivity();
       Stopwatch sw = Stopwatch.StartNew();
       try
       {

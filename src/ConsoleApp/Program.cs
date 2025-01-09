@@ -45,7 +45,10 @@ wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
 
    services.AddOpenTelemetry()
       .ConfigureResource(builder => builder.AddService("UpdateDns"))
-      .WithTracing(builder => builder.AddHttpClientInstrumentation().AddOtlpExporter())
+      .WithTracing(builder => builder
+         .AddHttpClientInstrumentation()
+         .AddSource("UpdateDns")
+         .AddOtlpExporter())
       .WithMetrics(builder => builder
          .AddMeter("UpdateDns")
          .AddOtlpExporter()
