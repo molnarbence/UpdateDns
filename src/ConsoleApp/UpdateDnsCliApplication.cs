@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.Metrics;
+﻿using System.Diagnostics;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +20,7 @@ internal class UpdateDnsCliApplication
       IDnsRecordsService dnsRecordsService, 
       ISlackNotifications slackNotifications)
    {
+      Stopwatch sw = Stopwatch.StartNew();
       try
       {
          // Get the public IP address
@@ -56,6 +57,12 @@ internal class UpdateDnsCliApplication
          logger.LogError(ex, "An error occurred");
          metrics.DnsUpdateFailed();
          return -1;
+      }
+      finally
+      {
+         sw.Stop();
+         metrics.DnsUpdateDuration(sw.ElapsedMilliseconds);
+         logger.LogInformation("Execution time: {Elapsed}", sw.Elapsed);
       }
    }
 }

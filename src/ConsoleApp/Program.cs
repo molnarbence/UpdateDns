@@ -1,5 +1,4 @@
 ﻿using ConsoleApp;
-using ConsoleApp.Cloudflare;
 using MbUtils.Extensions.CommandLineUtils;
 using Microsft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
