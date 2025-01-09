@@ -12,7 +12,11 @@ internal class UpdateDnsCliApplication
    [Argument(1, "name", "The name of the record to update.")]
    private string Name { get; } = string.Empty;
 
-   public async Task<int> OnExecuteAsync(ILogger<UpdateDnsCliApplication> logger, IPublicIpAddressResolver publicIpAddressResolver, IDnsRecordsService dnsRecordsService, ISlackNotifications slackNotifications)
+   public async Task<int> OnExecuteAsync(
+      ILogger<UpdateDnsCliApplication> logger,
+      IPublicIpAddressResolver publicIpAddressResolver, 
+      IDnsRecordsService dnsRecordsService, 
+      ISlackNotifications slackNotifications)
    {
       try
       {

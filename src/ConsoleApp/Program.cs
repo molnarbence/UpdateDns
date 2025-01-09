@@ -4,6 +4,9 @@ using MbUtils.Extensions.CommandLineUtils;
 using Microsft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Polly;
 using Polly.Extensions.Http;
 using Refit;
@@ -42,7 +45,13 @@ wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
 
    services.AddOptions<AppConfiguration>()
       .Bind(hostBuilderContext.Configuration);
-         
+
+   services.AddOpenTelemetry()
+      .ConfigureResource(builder => builder.AddService("UpdateDns"))
+      .WithTracing(builder => builder.AddHttpClientInstrumentation().AddOtlpExporter())
+      .WithMetrics(builder => builder.AddOtlpExporter()
+         .AddHttpClientInstrumentation());
+
 });
 
 wrapper.HostBuilder.UseSerilogWithOpenTelemetry();
