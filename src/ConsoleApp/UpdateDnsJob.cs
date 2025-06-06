@@ -1,28 +1,25 @@
-﻿using System.Diagnostics;
-using McMaster.Extensions.CommandLineUtils;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ConsoleApp;
 
-[Command("update-dns", Description = "Update the DNS record for a domain.")]
-internal class UpdateDnsCliApplication
+internal class UpdateDnsJob(ILogger<UpdateDnsJob> logger, 
+   UpdateDnsMetrics metrics,
+   IPublicIpAddressResolver publicIpAddressResolver, 
+   IDnsRecordsService dnsRecordsService, 
+   ISlackNotifications slackNotifications,
+   IOptions<AppConfiguration> appConfiguration)
 {
-   [Argument(0, "domain", "The domain to update.")]
-   private string Domain { get; } = string.Empty;
-
-   [Argument(1, "name", "The name of the record to update.")]
-   private string Name { get; } = string.Empty;
-
-   public async Task<int> OnExecuteAsync(
-      ILogger<UpdateDnsCliApplication> logger,
-      UpdateDnsMetrics metrics,
-      IPublicIpAddressResolver publicIpAddressResolver, 
-      IDnsRecordsService dnsRecordsService, 
-      ISlackNotifications slackNotifications)
+   public async Task ExecuteAsync()
    {
       ActivitySource activitySource = new("UpdateDns");
       using var activity = activitySource.StartActivity();
       Stopwatch sw = Stopwatch.StartNew();
+
+      var domain = appConfiguration.Value.Domain;
+      var name = appConfiguration.Value.Name;
+      
       try
       {
          // Get the public IP address
@@ -32,7 +29,7 @@ internal class UpdateDnsCliApplication
 
          // Get the current address of the DNS record
          logger.LogInformation("Getting current address of the DNS record...");
-         var addressInDnsRecord = await dnsRecordsService.GetCurrentAddressAsync(Domain, Name);
+         var addressInDnsRecord = await dnsRecordsService.GetCurrentAddressAsync(domain, name);
          logger.LogInformation("Current address is '{IpAddress}'", addressInDnsRecord);
 
          // If the alias is already set to the IP address, then we're done
@@ -40,25 +37,22 @@ internal class UpdateDnsCliApplication
          {
             logger.LogInformation("Address is already set to the current IP address");
             metrics.DnsRemainsUnchanged();
-            return 0;
+            return;
          }
 
          // Call the domain registrar
          logger.LogInformation("Updating address...");
-         await dnsRecordsService.UpdateRecordAsync(Domain, Name, publicIpAddress);
+         await dnsRecordsService.UpdateRecordAsync(domain, name, publicIpAddress);
          logger.LogInformation("Address updated.");
          metrics.DnsUpdated();
          
          // Send a notification
-         await slackNotifications.SendNotificationAsync(new SlackMessage($"DNS record for {Name}.{Domain} updated from {addressInDnsRecord} to {publicIpAddress}"));   
-         
-         return 0;
+         await slackNotifications.SendNotificationAsync(new SlackMessage($"DNS record for {name}.{domain} updated from {addressInDnsRecord} to {publicIpAddress}"));   
       }
       catch (Exception ex)
       {
          logger.LogError(ex, "An error occurred");
          metrics.DnsUpdateFailed();
-         return -1;
       }
       finally
       {

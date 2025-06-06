@@ -62,7 +62,7 @@ internal class FileCachedIdMappings(
    private string GetCacheFilePath()
    {
       if (_cacheFilePath is not null) return _cacheFilePath;
-      var appDataFolder = configuration.Value.AppDataFolder;
+      var appDataFolder = configuration.Value.AppConfigurationFolderPath;
       return _cacheFilePath = Path.Combine(appDataFolder, "idMappings.json");
    }
 

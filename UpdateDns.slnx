@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ConsoleApp/ConsoleApp.csproj" />
+  </Folder>
+  <Folder Name="/test/" />
+</Solution>

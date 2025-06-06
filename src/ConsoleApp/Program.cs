@@ -1,68 +1,77 @@
-﻿using ConsoleApp;
-using MbUtils.Extensions.CommandLineUtils;
+﻿using MbUtils.Extensions.Tools;
 using Microsft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Polly;
 using Polly.Extensions.Http;
 using Refit;
+using Serilog;
+using ConsoleApp;
 
-var wrapper = new CommandLineApplicationWrapper<UpdateDnsCliApplication>(args);
+var builder = Host.CreateApplicationBuilder(args);
 
-var appDataFolder = GetAppDataFolder();
-if (!Directory.Exists(appDataFolder)) Directory.CreateDirectory(appDataFolder);
+Console.WriteLine(builder.Environment.IsDevelopment());
 
-wrapper.HostBuilder.ConfigureAppConfiguration((context, builder) => {
-   builder.AddJsonFile(Path.Combine(appDataFolder, "config.json"), optional: true);
-   builder.AddInMemoryCollection([
-      new KeyValuePair<string, string?>("AppDataFolder", appDataFolder),
-   ]);
-});
+builder.AddHomeFolderConfigurationFile(".update-dns");
 
-wrapper.HostBuilder.ConfigureServices((hostBuilderContext, services) =>
-{
-   AppConfiguration appConfig =
-      hostBuilderContext.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
+var services = builder.Services;
+var configuration = builder.Configuration;
+var appConfig = builder.Configuration.Get<AppConfiguration>() ?? new AppConfiguration();
 
-   services
-      .AddRefitClient<IPublicIpAddressResolver>()
-      .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.PublicIpAddressResolverBaseUrl));
+
+services.AddSerilog(loggerConfiguration => loggerConfiguration.ReadFrom.Configuration(configuration));
+
+services
+   .AddOptions<AppConfiguration>()
+   .Bind(configuration)
+   .ValidateOnStart();
+
+services.AddSingleton<UpdateDnsJob>();
+
+services
+   .AddRefitClient<IPublicIpAddressResolver>()
+   .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.PublicIpAddressResolverBaseUrl));
          
-   services.AddRefitClient<ISlackNotifications>()
-      .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.Slack.WebhookUrl));
+services.AddRefitClient<ISlackNotifications>()
+   .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.Slack.WebhookUrl));
 
-   var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
+var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
 
-   services
-      .AddCloudflareApi(hostBuilderContext.Configuration, httpClientBuilder => httpClientBuilder.AddPolicyHandler(retryPolicy))
-      .AutoRegisterFromConsoleApp();
+services
+   .AddCloudflareApi(configuration, httpClientBuilder => httpClientBuilder.AddPolicyHandler(retryPolicy))
+   .AutoRegisterFromConsoleApp();
 
-   services.AddOptions<AppConfiguration>()
-      .Bind(hostBuilderContext.Configuration);
+services.AddOpenTelemetry()
+   .ConfigureResource(resourceBuilder => resourceBuilder.AddService("UpdateDns"))
+   .WithTracing(tracerProviderBuilder => tracerProviderBuilder
+      .AddHttpClientInstrumentation()
+      .AddSource("UpdateDns")
+      .AddOtlpExporter())
+   .WithMetrics(meterProviderBuilder => meterProviderBuilder
+      .AddMeter("UpdateDns")
+      .AddOtlpExporter()
+      .AddHttpClientInstrumentation());
 
-   services.AddOpenTelemetry()
-      .ConfigureResource(builder => builder.AddService("UpdateDns"))
-      .WithTracing(builder => builder
-         .AddHttpClientInstrumentation()
-         .AddSource("UpdateDns")
-         .AddOtlpExporter())
-      .WithMetrics(builder => builder
-         .AddMeter("UpdateDns")
-         .AddOtlpExporter()
-         .AddHttpClientInstrumentation());
+using var host = builder.Build();
 
-});
 
-wrapper.HostBuilder.UseSerilogWithOpenTelemetry();
-
-return await wrapper.ExecuteAsync();
-
-static string GetAppDataFolder()
+try
 {
-   var homeFolder = Environment.GetEnvironmentVariable("HOME")
-                    ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-   return Path.Combine(homeFolder, ".update-dns");
+   var runner = host.Services.GetRequiredService<UpdateDnsJob>();
+   
+   await runner.ExecuteAsync();
+
+   return 0; // success
+}
+catch (Exception ex)
+{
+   var logger = host.Services.GetRequiredService<ILogger<Program>>();
+   logger.LogError(ex, "Stopped program because of exception");
+
+   return 1; // failure
 }
