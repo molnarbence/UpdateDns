@@ -15,8 +15,6 @@ using ConsoleApp;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-Console.WriteLine(builder.Environment.IsDevelopment());
-
 builder.AddHomeFolderConfigurationFile(".update-dns");
 
 var services = builder.Services;
