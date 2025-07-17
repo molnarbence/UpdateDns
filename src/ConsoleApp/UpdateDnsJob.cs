@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using ConsoleApp.Observability;
+using ConsoleApp.PublicIpAddresses;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -47,7 +49,8 @@ internal class UpdateDnsJob(ILogger<UpdateDnsJob> logger,
          metrics.DnsUpdated();
          
          // Send a notification
-         await slackNotifications.SendNotificationAsync(new SlackMessage($"DNS record for {name}.{domain} updated from {addressInDnsRecord} to {publicIpAddress}"));   
+         await slackNotifications.SendNotificationAsync(
+            $"DNS record for {name}.{domain} updated from {addressInDnsRecord} to {publicIpAddress}");   
       }
       catch (Exception ex)
       {

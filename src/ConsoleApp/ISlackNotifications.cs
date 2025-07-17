@@ -9,3 +9,12 @@ internal interface ISlackNotifications
 }
 
 internal record SlackMessage(string Text);
+
+internal static class SlackNotificationsExtensions
+{
+   public static async Task SendNotificationAsync(this ISlackNotifications slackNotifications, string text)
+   {
+      var message = new SlackMessage(text);
+      await slackNotifications.SendNotificationAsync(message);
+   }
+}

@@ -12,6 +12,7 @@ using Polly.Extensions.Http;
 using Refit;
 using Serilog;
 using ConsoleApp;
+using ConsoleApp.PublicIpAddresses;
 
 var builder = Host.CreateApplicationBuilder(args);
 

@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace ConsoleApp;
+namespace ConsoleApp.Caching;
 
 [RegisterKeyedSingleton("cache")]
 internal class FileCachedIdMappings(

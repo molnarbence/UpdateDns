@@ -1,6 +1,6 @@
 ﻿using Refit;
 
-namespace ConsoleApp;
+namespace ConsoleApp.PublicIpAddresses;
 
 public interface IPublicIpAddressResolver
 {

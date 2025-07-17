@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.Metrics;
 
-namespace ConsoleApp;
+namespace ConsoleApp.Observability;
 
 [RegisterSingleton]
 public class UpdateDnsMetrics
