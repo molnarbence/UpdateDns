@@ -38,7 +38,9 @@ services
 services.AddRefitClient<ISlackNotifications>()
    .ConfigureHttpClient(client => client.BaseAddress = new Uri(appConfig.Slack.WebhookUrl));
 
-var retryPolicy = HttpPolicyExtensions.HandleTransientHttpError().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
+var retryPolicy = HttpPolicyExtensions
+   .HandleTransientHttpError()
+   .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10));
 
 services
    .AddCloudflareApi(configuration, httpClientBuilder => httpClientBuilder.AddPolicyHandler(retryPolicy))
